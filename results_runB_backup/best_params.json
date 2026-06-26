@@ -1,0 +1,32 @@
+{
+  "mixed": {
+    "param_label": "cs10_ms10_eps0.1",
+    "v_measure": 0.8097,
+    "ari": 0.7499,
+    "noise_ratio": 0.027
+  },
+  "scan_high": {
+    "param_label": "cs10_ms10_eps0.1",
+    "v_measure": 0.8709,
+    "ari": 0.8362,
+    "noise_ratio": 0.043
+  },
+  "scan_low": {
+    "param_label": "cs10_ms10_eps0.1",
+    "v_measure": 0.6479,
+    "ari": 0.597,
+    "noise_ratio": 0.0164
+  },
+  "stare_high": {
+    "param_label": "cs10_ms10_eps0.1",
+    "v_measure": 0.902,
+    "ari": 0.9693,
+    "noise_ratio": 0.0338
+  },
+  "stare_low": {
+    "param_label": "cs50_ms50_eps0.0",
+    "v_measure": 0.4987,
+    "ari": 0.4313,
+    "noise_ratio": 0.2458
+  }
+}

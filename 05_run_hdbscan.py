@@ -33,6 +33,8 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 from hdbscan import HDBSCAN
 
+np.random.seed(42)
+
 # Load .env
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
@@ -92,7 +94,46 @@ def param_to_label(params):
 
 
 # ---------------------------------------------------------------------------
-# STEP 2: Run HDBSCAN on a single window with a single param set
+# STEP 2a: Feature engineering — add PRI-derived + delta features
+# ---------------------------------------------------------------------------
+
+def add_pri_features(X_window):
+    """
+    Add 8 derived features to a single window:
+    - 6 temporal lag/lead features (capture PRI patterns)
+    - 2 delta features (delta_freq, delta_pw — capture smoothness)
+    
+    X_window: (1024, 5) — [ToA, Freq, PW, AoA, Ampl]
+    Returns: (1024, 13) — original 5 + 8 derived
+    """
+    n = len(X_window)
+    ToA = X_window[:, 0]
+    Freq = X_window[:, 1]
+    PW = X_window[:, 2]
+
+    lag1 = np.zeros(n)
+    lead1 = np.zeros(n)
+    lag2 = np.zeros(n)
+    lead2 = np.zeros(n)
+    lag3 = np.zeros(n)
+    lead3 = np.zeros(n)
+    delta_freq = np.zeros(n)
+    delta_pw = np.zeros(n)
+
+    lag1[1:] = ToA[1:] - ToA[:-1]
+    lead1[:-1] = ToA[1:] - ToA[:-1]
+    lag2[2:] = ToA[2:] - ToA[:-2]
+    lead2[:-2] = ToA[2:] - ToA[:-2]
+    lag3[3:] = ToA[3:] - ToA[:-3]
+    lead3[:-3] = ToA[3:] - ToA[:-3]
+    delta_freq[1:] = np.abs(Freq[1:] - Freq[:-1])
+    delta_pw[1:] = np.abs(PW[1:] - PW[:-1])
+
+    return np.column_stack([X_window, lag1, lead1, lag2, lead2, lag3, lead3, delta_freq, delta_pw])
+
+
+# ---------------------------------------------------------------------------
+# STEP 2b: Run HDBSCAN on a single window with a single param set
 # ---------------------------------------------------------------------------
 
 def cluster_window(X, params):
@@ -135,30 +176,39 @@ def process_scenario(scenario_name, X, y_true, n_jobs=4):
     print(f"\n  Scenario: {scenario_name}")
     print(f"    Windows: {n_windows}  |  Params: {n_params}  |  Total fits: {n_windows * n_params}")
 
+    # Pre-compute extended features for all windows
+    print(f"    Computing 8 PRI-derived features per window...")
+    X_extended = np.zeros((n_windows, X.shape[1], X.shape[2] + 8))
+    for w_idx in range(n_windows):
+        X_extended[w_idx] = add_pri_features(X[w_idx])
+    print(f"    Feature matrix: ({X_extended.shape[0]}, {X_extended.shape[1]}, {X_extended.shape[2]})")
+
     # Per-scenario normalization: compute global mean/std across all windows
-    feat_mean = X.mean(axis=(0, 1))
-    feat_std = X.std(axis=(0, 1))
+    feat_mean = X_extended.mean(axis=(0, 1))
+    feat_std = X_extended.std(axis=(0, 1))
     feat_std[feat_std == 0] = 1.0
-    print(f"    Normalization: mean={np.round(feat_mean, 2)}, std={np.round(feat_std, 2)}")
+    print(f"    Normalization: {X_extended.shape[2]} features normalized")
 
     # Count already-completed results
     total_fits = n_windows * n_params
     completed_fits = 0
 
     for w_idx in range(n_windows):
-        X_norm = (X[w_idx] - feat_mean) / feat_std
+        X_norm = (X_extended[w_idx] - feat_mean) / feat_std
         for p_idx, params in enumerate(PARAM_GRID):
             param_hash = param_to_hash(params)
             result_path = RESULTS_DIR / f"{scenario_name}_w{w_idx:04d}_p{param_hash}.json"
 
             # Check if this (window, param) combo is already done
             if not result_path.exists():
-                # Run clustering
-                result = cluster_window(X_norm, params)
-                # Save result so we can resume later
-                with open(result_path, "w") as f:
-                    json.dump(result, f)
-                completed_fits += 1
+                try:
+                    result = cluster_window(X_norm, params)
+                    with open(result_path, "w") as f:
+                        json.dump(result, f)
+                    completed_fits += 1
+                except Exception as e:
+                    print(f"    [WARN] Window {w_idx}, param {param_hash} failed: {e}")
+                    continue
 
     print(f"    Completed fits this run: {completed_fits}")
     return completed_fits

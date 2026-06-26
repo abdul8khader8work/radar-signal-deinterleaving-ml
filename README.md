@@ -24,6 +24,9 @@ python run_all.py
 | 5 | `05_run_hdbscan.py` | HDBSCAN parameter sweep | 45-75 min |
 | 6 | `06_evaluate.py` | Compute V-measure, ARI, AMI, etc. | 2 min |
 | 7 | `07_visualize.py` | Generate 7 comparison plots | 2 min |
+| 8 | `06_run_umap_hdbscan.py` | **Exp 2A:** UMAP 2D/3D + HDBSCAN comparison | 5-10 min |
+| 9 | `07_run_gmm.py` | **Exp 2B:** GMM baseline with BIC selection | 4-5 min |
+| 10 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
 
 ## The 5 Scenarios
 
@@ -54,7 +57,52 @@ Total: 12 combinations per scenario.
 | `results/*.json` | Per-window, per-param clustering results |
 | `results/summary_metrics.csv` | Aggregated metrics table |
 | `results/best_params.json` | Optimal parameters per scenario |
+| `results/run_comparison.csv` | 3-run comparison (A vs B vs C) |
+| `results_experiment2/summary_umap_hdbscan.csv` | UMAP 2D/3D + HDBSCAN results |
+| `results_experiment2/summary_gmm.csv` | GMM baseline results |
+| `results_experiment2/final_comparison_4way.csv` | 4-way comparison table |
+| `results_runB_backup/` | Run B optimal config (reference) |
 | `plots/*.png` | 7 visualization files |
+
+## Experiment 2: Dimensionality Reduction & Algorithm Comparison
+
+### Exp 2A: UMAP + HDBSCAN
+UMAP reduces the 5 normalized PDW features to 2D and 3D before HDBSCAN clustering.
+
+| Scenario | Run B (5D) | UMAP 2D | UMAP 3D |
+|----------|:---------:|:-------:|:-------:|
+| stare_low | **0.499** | 0.430 | 0.441 |
+| stare_high | **0.902** | 0.578 | 0.597 |
+| scan_low | **0.648** | 0.296 | 0.302 |
+| scan_high | **0.871** | 0.730 | 0.754 |
+| mixed | **0.810** | 0.436 | 0.472 |
+
+**Finding:** UMAP consistently degrades performance (−14% to −54%). The 5D PDW space is already low-dimensional; UMAP discards signal, not noise.
+
+### Exp 2B: GMM Baseline
+Gaussian Mixture Models with BIC-based K selection (K=2..20) on the same 5 normalized features.
+
+| Scenario | Run B (5D) | GMM (BIC) | Delta |
+|----------|:---------:|:---------:|:-----:|
+| stare_high | **0.902** | 0.866 | −4.0% |
+| scan_high | **0.871** | 0.868 | −0.4% |
+| scan_low | **0.648** | 0.585 | −9.7% |
+| mixed | **0.810** | 0.678 | −16.2% |
+| stare_low | **0.499** | 0.367 | −26.5% |
+
+**Finding:** GMM is competitive on high-density scenarios (within 0.4-4%) but struggles with sparse emitters where the Gaussian assumption is violated.
+
+## Experiment 1: Feature Engineering (Run A → B → C)
+
+| Scenario | Run A (raw) | Run B (5 norm) | Run C (13 feat) |
+|----------|:---------:|:-------------:|:--------------:|
+| stare_low | 0.270 | **0.499** | 0.491 |
+| stare_high | 0.290 | **0.902** | 0.443 |
+| scan_low | 0.450 | **0.648** | 0.507 |
+| scan_high | 0.590 | **0.871** | 0.648 |
+| mixed | 0.350 | **0.810** | 0.615 |
+
+**Finding:** Normalization provided massive gains (+44% to +211%). Adding 8 PRI-derived features (lag/lead/delta) caused "Feature Dilution" — cross-emitter interleaving makes PRI features noisy, degrading HDBSCAN's density neighborhoods.
 
 ## Resuming After Interruption
 
@@ -65,7 +113,7 @@ All scripts are **resumable**. If the pipeline is interrupted:
 
 ## System Requirements
 
-- **Python**: 3.10+
+- **Python**: 3.11+
 - **RAM**: 8 GB (tested)
 - **Disk**: 3 GB free (for data + results)
 - **GPU**: Not required (CPU-only, n_jobs=4)

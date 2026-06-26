@@ -1,0 +1,6 @@
+scenario,v_measure,ari,best_k_mean,n_windows
+mixed,0.6784,0.4823,10.2400,100
+scan_high,0.8676,0.7288,14.7800,100
+scan_low,0.5848,0.4628,7.4000,100
+stare_high,0.8661,0.8076,12.5400,100
+stare_low,0.3667,0.1577,12.9300,100

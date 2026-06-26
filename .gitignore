@@ -10,6 +10,18 @@ logs/
 results/*
 !results/summary_metrics.csv
 !results/best_params.json
+!results/run_comparison.csv
+
+# Experiment 2 results (keep summaries, ignore per-window JSONs)
+results_experiment2/*
+!results_experiment2/summary_umap_hdbscan.csv
+!results_experiment2/summary_gmm.csv
+!results_experiment2/final_comparison_4way.csv
+
+# Run B backup (keep summaries, ignore per-window JSONs)
+results_runB_backup/*
+!results_runB_backup/best_params.json
+!results_runB_backup/summary_metrics.csv
 
 # Python cache
 __pycache__/

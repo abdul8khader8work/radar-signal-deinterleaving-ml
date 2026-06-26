@@ -1,0 +1,11 @@
+scenario,method,v_measure,ari,noise_ratio,n_windows
+mixed,UMAP_2D,0.4357,0.1956,0.0567,100
+mixed,UMAP_3D,0.4721,0.2542,0.0435,100
+scan_high,UMAP_2D,0.7304,0.5170,0.0364,100
+scan_high,UMAP_3D,0.7541,0.5548,0.0306,100
+scan_low,UMAP_2D,0.2962,0.1457,0.0511,100
+scan_low,UMAP_3D,0.3020,0.1429,0.0457,100
+stare_high,UMAP_2D,0.5779,0.2950,0.0528,100
+stare_high,UMAP_3D,0.5970,0.3347,0.0454,100
+stare_low,UMAP_2D,0.4297,0.3093,0.0578,100
+stare_low,UMAP_3D,0.4407,0.3237,0.0512,100
