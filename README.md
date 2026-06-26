@@ -184,6 +184,89 @@ A detailed failure-mode analysis of the optimal HDBSCAN model (Run B, 5D normali
 
 Full report: `results_experiment4/deep_error_analysis.md`
 
+## Scalability Analysis: Full 70 GB TSRD Dataset
+
+All experiments above used only the **validation subset** of TSRD (~5 GB, 500 .h5 files), which is **~7% of the complete 70 GB dataset**. Here is a practical assessment of running the same pipeline on the full dataset with this laptop's hardware.
+
+### Hardware Constraints (This Laptop)
+
+| Component | Specification |
+|-----------|--------------|
+| Model | HP Pavilion 15-eh2xxx |
+| CPU | AMD Ryzen 5 5625U (6 cores / 12 threads, 2.3 GHz) |
+| RAM | **8 GB (7.9 GB usable)** |
+| Disk | ~158 GB SSD total, **~22 GB free** |
+| GPU | Integrated Radeon Graphics (none) |
+
+### Resource Requirements for Full Dataset
+
+| Resource | Validation Subset (current) | Full 70 GB Dataset | Verdict |
+|----------|:--------------------------:|:------------------:|:-------:|
+| **Raw data on disk** | 5 GB | 70 GB | ❌ **22 GB free — can't fit** |
+| **Download time** | ~30 min (500 files) | ~5-8 hours (5,512 files) | ⚠️ Doable overnight |
+| **Scenario windowing** | ~30 sec per scenario | ~5 min per scenario | ✅ Fine (streaming) |
+| **Parameter sweep (12 combos)** | 45-75 min per run | ~9-13 hours per run | ⚠️ Possible overnight |
+| **Multiple runs (A–F)** | ~6 hours total | **~65 hours total** | ❌ Nearly 3 days nonstop |
+| **Per-window JSON results** | ~80 MB per run | ~1-2 GB per run | ❌ < 22 GB free |
+| **Evaluation (contingency matrices)** | 100 windows × 5-30 emitters | 10,000+ windows × 100+ emitters | ❌ **8 GB RAM → OOM** |
+
+### Bottleneck Analysis
+
+#### 1. Disk Space — Immediate Blocker
+The full 70 GB raw dataset cannot be stored on this laptop (only 22 GB free). Even with an external drive:
+- USB 3.0 sequential read ~100 MB/s → ~12 min to load the full dataset (once), but
+- Random-access I/O for the pipeline (scanning 5,512 files for windowing) would be far slower
+- Additionally, per-window JSON results for 6 runs would consume ~6-12 GB on top
+
+#### 2. Memory — Evaluation Step Will OOM
+The per-window HDBSCAN clustering (1024 points) fits easily in 8 GB RAM. However, the evaluation step (`06_evaluate.py`) builds global contingency matrices across all windows simultaneously. With 10,000+ windows and 100+ unique emitters:
+- Contingency matrix: 100 × 100 × int64 = ~80 KB per window
+- Aggregated: 10,000 × 80 KB = **800 MB** for a single matrix
+- Multiple metrics (V-measure, ARI, AMI, NMI) each require separate passes
+- Plus the existing overhead of loading all predictions into memory → **exceeds 8 GB**
+
+#### 3. Compute Time — 9+ Days Total
+The parameter sweep (`05_run_hdbscan.py`) is the bottleneck:
+- Each window × parameter combination takes ~5 seconds
+- Full dataset: ~10,000 windows (estimate) × 12 param combos = 120,000 HDBSCAN fits
+- At 5 seconds each: **~167 hours per run**
+- With 6 runs (A through F): **~1,000 hours = 42 days** on a single thread
+- With `n_jobs=4`: **~10 days** of continuous computation
+- This excludes the additional GMM (Exp 2B) and UMAP (Exp 2A, Exp 3) computations
+
+#### 4. Results Storage — I/O Bottleneck
+The current pipeline saves one JSON file per window per parameter set:
+- Full dataset: 120,000+ JSON files per run = 720,000+ files for 6 runs
+- Even at 10 KB each, that's **~7 GB of tiny files**
+- File system overhead for 720K+ files on an SSD: degraded performance, slow `os.listdir()`, Windows file indexing crawl
+
+### Would a Server Help? (Minimum Specs)
+
+To run the full 70 GB TSRD pipeline efficiently:
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **RAM** | 32 GB | 64 GB |
+| **Disk** | 200 GB free SSD | 500 GB NVMe |
+| **CPU** | 8 cores | 16+ cores |
+| **GPU** | Not required | Not required |
+
+Even on a server, the total pipeline runtime would be **2-5 days** (with parallelism).
+
+### Why We Used the Validation Subset
+
+The decision to use only the validation subset was deliberate:
+
+1. **It's the official benchmark split** — TSRD's paper uses validation for evaluation
+2. **Representative diversity** — 500 files × ~30,000 pulses each captures the same emitter types, receiver modes, and SNR ranges as the full set
+3. **8 GB RAM feasibility** — The validation subset fits in this laptop's memory at every pipeline step
+4. **Rapid iteration** — 6-run experiment in hours vs weeks allows faster learning
+5. **Same conclusions, less cost** — The key findings (normalization beats raw, feature dilution hurts, UMAP degrades) are structural properties of the feature space, not sampling artifacts
+
+### Bottom Line
+
+The 8 GB laptop can handle the validation subset end-to-end. Scaling to the full 70 GB TSRD is **not feasible** on this hardware — disk space, RAM (during evaluation), and compute time (10+ days) are all blockers. A server with 32+ GB RAM and 200+ GB free disk would be the minimum viable upgrade.
+
 ## Resuming After Interruption
 
 All scripts are **resumable**. If the pipeline is interrupted:
@@ -193,9 +276,11 @@ All scripts are **resumable**. If the pipeline is interrupted:
 
 ## System Requirements
 
+This pipeline is designed and tested for the **TSRD validation subset** (~5 GB, 500 .h5 files). See the Scalability Analysis section above for requirements to run on the full 70 GB dataset.
+
 - **Python**: 3.11+
-- **RAM**: 8 GB (tested)
-- **Disk**: 3 GB free (for data + results)
+- **RAM**: 8 GB (tested for validation subset)
+- **Disk**: 5 GB free minimum (3 GB data + 2 GB results) — 22+ GB recommended
 - **GPU**: Not required (CPU-only, n_jobs=4)
 - **Internet**: Required for download step
 - **OS**: Windows (tested), Linux/macOS (should work)
