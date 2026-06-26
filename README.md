@@ -26,7 +26,8 @@ python run_all.py
 | 7 | `07_visualize.py` | Generate 7 comparison plots | 2 min |
 | 8 | `06_run_umap_hdbscan.py` | **Exp 2A:** UMAP 2D/3D + HDBSCAN comparison | 5-10 min |
 | 9 | `07_run_gmm.py` | **Exp 2B:** GMM baseline with BIC selection | 4-5 min |
-| 10 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
+| 10 | `08_advanced_features.py` | **Exp 3:** PRI stats, FFT, UMAP 13D→3D | 40-50 min |
+| 11 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
 
 ## The 5 Scenarios
 
@@ -57,7 +58,13 @@ Total: 12 combinations per scenario.
 | `results/*.json` | Per-window, per-param clustering results |
 | `results/summary_metrics.csv` | Aggregated metrics table |
 | `results/best_params.json` | Optimal parameters per scenario |
-| `results/run_comparison.csv` | 3-run comparison (A vs B vs C) |
+| `results/run_comparison.csv` | 6-run comparison (A vs B vs C vs D vs E vs F) |
+| `results/best_params_run_d_pristat.json` | Exp 3 — Best params for PRI statistics (Run D) |
+| `results/best_params_run_e_fft.json` | Exp 3 — Best params for FFT features (Run E) |
+| `results/best_params_run_f_umap13d.json` | Exp 3 — Best params for UMAP 13D→3D (Run F) |
+| `results/summary_run_d_pristat.csv` | Exp 3 — Full evaluation, PRI statistics approach |
+| `results/summary_run_e_fft.csv` | Exp 3 — Full evaluation, FFT approach |
+| `results/summary_run_f_umap13d.csv` | Exp 3 — Full evaluation, UMAP 13D→3D approach |
 | `results_experiment2/summary_umap_hdbscan.csv` | UMAP 2D/3D + HDBSCAN results |
 | `results_experiment2/summary_gmm.csv` | GMM baseline results |
 | `results_experiment2/final_comparison_4way.csv` | 4-way comparison table |
@@ -103,6 +110,48 @@ Gaussian Mixture Models with BIC-based K selection (K=2..20) on the same 5 norma
 | mixed | 0.350 | **0.810** | 0.615 |
 
 **Finding:** Normalization provided massive gains (+44% to +211%). Adding 8 PRI-derived features (lag/lead/delta) caused "Feature Dilution" — cross-emitter interleaving makes PRI features noisy, degrading HDBSCAN's density neighborhoods.
+
+## Experiment 3: Advanced Feature Engineering (Runs D, E, F)
+
+Three alternative approaches tested against the Run B (5 normalized PDW) baseline:
+
+### Run D — Statistical PRI Aggregation (Window-Level)
+Adds 3 window-level statistics (median PRI, IQR of PRI, PRI entropy) to the 5 PDW features. These features are **constant for all 1024 pulses in a window**, so after StandardScaler normalization they become all-zeros — inert dimensions.
+
+| Scenario | Run B (5D) | Run D (8D) | Delta |
+|----------|:---------:|:---------:|:-----:|
+| stare_low | 0.499 | 0.499 | 0.0% |
+| stare_high | 0.902 | 0.902 | 0.0% |
+| scan_low | 0.648 | 0.648 | 0.0% |
+| scan_high | 0.871 | 0.871 | 0.0% |
+| mixed | 0.810 | 0.810 | 0.0% |
+
+### Run E — Frequency Domain (FFT on ToA Sequence)
+Extracts 3 dominant FFT frequencies from the detrended ToA sequence per window. Same issue — constant-per-window features normalize to zeros, producing identical results to Run B.
+
+| Scenario | Run B (5D) | Run E (8D) | Delta |
+|----------|:---------:|:---------:|:-----:|
+| stare_low | 0.499 | 0.499 | 0.0% |
+| stare_high | 0.902 | 0.902 | 0.0% |
+| scan_low | 0.648 | 0.648 | 0.0% |
+| scan_high | 0.871 | 0.871 | 0.0% |
+| mixed | 0.810 | 0.810 | 0.0% |
+
+### Run F — UMAP Manifold Reduction on 13D Space
+Takes the diluted 13D feature space (Run C) and reduces to 3D via UMAP before HDBSCAN. Partially recovers from feature dilution but still underperforms the 5D baseline.
+
+| Scenario | Run B (5D) | Run F (UMAP 3D) | Delta vs B | Run C (13D) | Delta vs C |
+|----------|:---------:|:---------------:|:----------:|:----------:|:----------:|
+| stare_low | **0.499** | 0.464 | −6.9% | 0.491 | −5.5% |
+| stare_high | **0.902** | 0.579 | −35.8% | 0.443 | **+30.7%** |
+| scan_low | **0.648** | 0.431 | −33.4% | 0.507 | −14.9% |
+| scan_high | **0.871** | 0.656 | −24.7% | 0.648 | +1.2% |
+| mixed | **0.810** | 0.565 | −30.3% | 0.615 | −8.2% |
+
+### Experiment 3 Conclusions
+1. **Window-level aggregate features are inert** — constant values across all pulses normalize to zeros, adding no discriminatory power. Pulse-level features (per-pulse PDW measurements) are essential for HDBSCAN's density-based clustering.
+2. **UMAP partially rescues diluted features** — on stare_high, UMAP 13D→3D beats raw 13D by +30.7%, confirming manifold structure exists in the noisy 13D space. However, it still can't match the clean 5D baseline.
+3. **The 5D normalized PDW space remains the sweet spot** — none of the 3 advanced approaches beat Run B in any scenario.
 
 ## Resuming After Interruption
 
