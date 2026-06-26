@@ -1,0 +1,42 @@
+{
+  "mixed": {
+    "param_label": "cs20_ms20_eps0.0",
+    "v_measure": 0.5645,
+    "ari": 0.4319,
+    "noise_ratio": 0.0098,
+    "silhouette": 0.6082,
+    "n_clusters": 8.8
+  },
+  "scan_high": {
+    "param_label": "cs20_ms20_eps0.0",
+    "v_measure": 0.6558,
+    "ari": 0.4939,
+    "noise_ratio": 0.0252,
+    "silhouette": 0.7012,
+    "n_clusters": 11.87
+  },
+  "scan_low": {
+    "param_label": "cs20_ms20_eps0.0",
+    "v_measure": 0.4314,
+    "ari": 0.3407,
+    "noise_ratio": 0.0097,
+    "silhouette": 0.6313,
+    "n_clusters": 6.75
+  },
+  "stare_high": {
+    "param_label": "cs10_ms10_eps0.0",
+    "v_measure": 0.5791,
+    "ari": 0.5293,
+    "noise_ratio": 0.012,
+    "silhouette": 0.5471,
+    "n_clusters": 8.16
+  },
+  "stare_low": {
+    "param_label": "cs20_ms20_eps0.0",
+    "v_measure": 0.4641,
+    "ari": 0.3851,
+    "noise_ratio": 0.0382,
+    "silhouette": 0.6894,
+    "n_clusters": 5.42
+  }
+}

@@ -9,7 +9,13 @@ logs/
 # Results (keep summary files, ignore per-fit JSONs)
 results/*
 !results/summary_metrics.csv
+!results/summary_run_d_pristat.csv
+!results/summary_run_e_fft.csv
+!results/summary_run_f_umap13d.csv
 !results/best_params.json
+!results/best_params_run_d_pristat.json
+!results/best_params_run_e_fft.json
+!results/best_params_run_f_umap13d.json
 !results/run_comparison.csv
 
 # Experiment 2 results (keep summaries, ignore per-window JSONs)
