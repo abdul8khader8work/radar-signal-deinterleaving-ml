@@ -1,0 +1,32 @@
+# Environment & secrets
+.env
+
+# Data directories (large files)
+data/
+scenarios/
+logs/
+
+# Results (keep summary files, ignore per-fit JSONs)
+results/*
+!results/summary_metrics.csv
+!results/best_params.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
