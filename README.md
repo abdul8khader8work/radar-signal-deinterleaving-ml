@@ -28,6 +28,7 @@ python run_all.py
 | 9 | `07_run_gmm.py` | **Exp 2B:** GMM baseline with BIC selection | 4-5 min |
 | 10 | `08_advanced_features.py` | **Exp 3:** PRI stats, FFT, UMAP 13D→3D | 40-50 min |
 | 11 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
+| 12 | `09_deep_error_analysis.py` | **Exp 4:** Deep failure mode analysis of Run B | 2-3 min |
 
 ## The 5 Scenarios
 
@@ -69,6 +70,8 @@ Total: 12 combinations per scenario.
 | `results_experiment2/summary_gmm.csv` | GMM baseline results |
 | `results_experiment2/final_comparison_4way.csv` | 4-way comparison table |
 | `results_runB_backup/` | Run B optimal config (reference) |
+| `results_experiment4/deep_error_analysis.md` | Exp 4 — Deep failure mode analysis report |
+| `results_experiment4/error_analysis_summary.csv` | Exp 4 — Summary table of over/under-segmentation |
 | `plots/*.png` | 7 visualization files |
 
 ## Experiment 2: Dimensionality Reduction & Algorithm Comparison
@@ -152,6 +155,34 @@ Takes the diluted 13D feature space (Run C) and reduces to 3D via UMAP before HD
 1. **Window-level aggregate features are inert** — constant values across all pulses normalize to zeros, adding no discriminatory power. Pulse-level features (per-pulse PDW measurements) are essential for HDBSCAN's density-based clustering.
 2. **UMAP partially rescues diluted features** — on stare_high, UMAP 13D→3D beats raw 13D by +30.7%, confirming manifold structure exists in the noisy 13D space. However, it still can't match the clean 5D baseline.
 3. **The 5D normalized PDW space remains the sweet spot** — none of the 3 advanced approaches beat Run B in any scenario.
+
+## Experiment 4: Deep Error Analysis of Run B
+
+A detailed failure-mode analysis of the optimal HDBSCAN model (Run B, 5D normalized PDW) across all 5 scenarios. Computes confusion matrices, per-emitter purity/completeness, indistinguishable emitter checks, and noise point characterization.
+
+### Global Failure Mode Summary
+
+| Scenario | Over-seg. | Under-seg. | Noise% | Primary Failure |
+|---------|----------|----------|------|----------------|
+| stare_low | 5 | 4 | 24.6% | Over-segmentation |
+| stare_high | 18 | 11 | 3.4% | Over-segmentation |
+| scan_low | 5 | 8 | 1.6% | Under-segmentation |
+| scan_high | 25 | 21 | 4.3% | Over-segmentation |
+| mixed | 15 | 15 | 2.7% | Balanced |
+
+### Key Findings
+
+1. **24.6% noise in stare_low** — The optimal params (cs50_ms50_eps0.0) are too conservative for this scenario; many sparse emitters (E3/E5/E6/E13/E15/E16) have >95% noise rate, indicating low-density regions in the 5D PDW space.
+
+2. **scenario_high scenarios are dominated by over-segmentation** — With 15-30 emitters, HDBSCAN splits individual emitters into sub-clusters due to intra-emitter PRI variation creating local density variations.
+
+3. **212 unique merge patterns in scan_high** — The most complex scenario shows massive under-segmentation boundary overlap. Merged emitters have distinguishable mean parameters (Freq diff > 100 MHz, PW diff > 1 µs) but their distributions overlap at cluster boundaries.
+
+4. **Physically indistinguishable emitters** — Some merges (e.g., scan_low E30+E71: ΔFreq=0.13 MHz, ΔPW=0.49 µs) show nearly identical PDW parameters, representing a data limitation rather than a clustering failure.
+
+5. **Noise points correspond to boundary ambiguity** — Noise consistently has distinct mean Freq/PW from clustered points, confirming they occupy low-density regions between emitter clusters.
+
+Full report: `results_experiment4/deep_error_analysis.md`
 
 ## Resuming After Interruption
 

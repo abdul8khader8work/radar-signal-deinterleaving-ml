@@ -1,0 +1,6 @@
+scenario,n_true_emitters,n_pred_clusters,over_seg_events,under_seg_events,noise_pct
+stare_low,5,5,5,4,24.58
+stare_high,18,11,18,11,3.38
+scan_low,5,13,5,8,1.64
+scan_high,27,22,25,21,4.3
+mixed,16,18,15,15,2.7
