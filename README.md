@@ -84,6 +84,41 @@ Total: 12 combinations per scenario.
 | `results_experiment6/production_recommendation.md` | Exp 6 — Production deployment guide + executive summary |
 | `results_experiment6/experiment6_metrics.csv` | Exp 6 — Per-scenario metrics for Runs J/K/L/M |
 | `plots/*.png` | 7 visualization files |
+| `results/PLOT_INDEX.md` | Complete listing of all 160 generated plots |
+| `results/run_b/plots/` | 31 per-run plots for Run B (5D HDBSCAN baseline) |
+| `results/run_j/plots/` | 31 per-run plots for Run J (Multi-scale PRI) |
+| `results/run_k/plots/` | 31 per-run plots for Run K (Ensemble Voting) |
+| `results/run_l/plots/` | 31 per-run plots for Run L (CDIF Standalone) |
+| `results/run_m/plots/` | 31 per-run plots for Run M (Bi-GRU Post-Processor) |
+| `results/comparison/plots/` | 5 cross-run comparison plots (silhouette, V-measure, heatmap, timing, dashboard) |
+
+## Visualizations
+
+All 160 publication-ready plots are in `results/`. Each run directory contains 6 plots per scenario (cluster scatter, GT vs predicted, silhouette analysis, cluster sizes, feature profiles, PRI histogram) plus a 5-subplot summary dashboard.
+
+### Per-Run Structure
+```
+results/run_X/plots/
+  stare_low_cluster_scatter.png    # UMAP 2D cluster visualization
+  stare_low_gt_vs_pred.png         # Ground truth vs predicted side-by-side
+  stare_low_silhouette.png         # Silhouette coefficient per cluster
+  stare_low_cluster_sizes.png      # Cluster size distribution bar chart
+  stare_low_feature_profiles.png   # Feature profile per cluster (5D PDW)
+  stare_low_pri_histogram.png      # PRI histogram colored by cluster
+  ... (same 6 for each of 5 scenarios)
+  summary_metrics.png              # 5-subplot dashboard for this run
+```
+
+### Comparison Plots
+| File | Description |
+|------|-------------|
+| `all_runs_silhouette_comparison.png` | Grouped bar chart across all 5 runs |
+| `all_runs_vmeasure_comparison.png` | V-Measure with Run B baseline line |
+| `winner_heatmap.png` | 5x5 heatmap — best approach per scenario |
+| `timing_vs_performance.png` | Accuracy vs compute time scatter |
+| `final_dashboard.png` | 2x2 dashboard with winner, radar, improvements, noise |
+
+See `results/PLOT_INDEX.md` for the complete listing of all 160 plots.
 
 ## Experiment 2: Dimensionality Reduction & Algorithm Comparison
 

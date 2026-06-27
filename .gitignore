@@ -29,6 +29,18 @@ results_runB_backup/*
 !results_runB_backup/best_params.json
 !results_runB_backup/summary_metrics.csv
 
+# Plot directories (keep all PNGs and PLOT_INDEX, ignore per-window JSONs)
+!results/PLOT_INDEX.md
+!results/run_*/
+!results/run_*/**
+!results/comparison/
+!results/comparison/**
+
+# Experiment 6 cache (binary .npy prediction files)
+results_experiment6/*
+!results_experiment6/cache/
+!results_experiment6/cache/**
+
 # Python cache
 __pycache__/
 *.pyc
