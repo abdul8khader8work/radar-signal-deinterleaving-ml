@@ -29,6 +29,7 @@ python run_all.py
 | 10 | `08_advanced_features.py` | **Exp 3:** PRI stats, FFT, UMAP 13D→3D | 40-50 min |
 | 11 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
 | 12 | `09_deep_error_analysis.py` | **Exp 4:** Deep failure mode analysis of Run B | 2-3 min |
+| 13 | `09_advanced_architectures.py` | **Exp 5:** Graph+HMM, CDIF, 1D-CNN embedding vs Run B | 2-3 min |
 
 ## The 5 Scenarios
 
@@ -72,6 +73,11 @@ Total: 12 combinations per scenario.
 | `results_runB_backup/` | Run B optimal config (reference) |
 | `results_experiment4/deep_error_analysis.md` | Exp 4 — Deep failure mode analysis report |
 | `results_experiment4/error_analysis_summary.csv` | Exp 4 — Summary table of over/under-segmentation |
+| `results_experiment5/experiment5_final_verdict.md` | Exp 5 — Final verdict, analysis, executive summary |
+| `results_experiment5/final_comparison_table.csv` | Exp 5 — Runs G/H/I vs Run B comparison table |
+| `results_experiment5/Run_G_GraphHMM/aggregate_metrics.csv` | Exp 5 — Graph+HMM per-scenario metrics |
+| `results_experiment5/Run_H_CDIF/aggregate_metrics.csv` | Exp 5 — CDIF+HDBSCAN per-scenario metrics |
+| `results_experiment5/Run_I_CNN/aggregate_metrics.csv` | Exp 5 — 1D-CNN+HDBSCAN per-scenario metrics |
 | `plots/*.png` | 7 visualization files |
 
 ## Experiment 2: Dimensionality Reduction & Algorithm Comparison
@@ -183,6 +189,55 @@ A detailed failure-mode analysis of the optimal HDBSCAN model (Run B, 5D normali
 5. **Noise points correspond to boundary ambiguity** — Noise consistently has distinct mean Freq/PW from clustered points, confirming they occupy low-density regions between emitter clusters.
 
 Full report: `results_experiment4/deep_error_analysis.md`
+
+## Experiment 5: Targeted Breakthroughs (Runs G, H, I)
+
+Three CPU-efficient approaches directly attacking the failure modes found in Experiment 4.
+The 5D PDW ceiling was broken by a lightweight 1D-CNN that learns temporal PRI patterns.
+
+### Final Results
+
+| Scenario | Run B (5D PDW) | Run G (Graph+HMM) | Run H (CDIF) | Run I (CNN Emb) |
+|----------|:--------------:|:-----------------:|:------------:|:---------------:|
+| stare_low | 0.499 | 0.148 (−70%) | **0.599 (+20%)** | **0.786 (+58%)** |
+| stare_high | 0.902 | 0.080 (−91%) | 0.754 (−16%) | **0.933 (+3%)** |
+| scan_low | **0.648** | 0.126 (−81%) | 0.617 (−5%) | 0.583 (−10%) |
+| scan_high | **0.871** | 0.058 (−93%) | 0.813 (−7%) | 0.862 (−1%) |
+| mixed | 0.810 | 0.121 (−85%) | 0.802 (−1%) | **0.852 (+5%)** |
+
+### Winner: Run I — 1D-CNN Embedding + HDBSCAN (+58% on stare_low)
+
+A tiny 3-layer 1D-CNN (50K parameters) trained on 50 windows (~50K pulses, 3 seconds
+CPU training) learns a discriminative 16D embedding from the ToA sequence. HDBSCAN on
+this embedding beats Run B on 3/5 scenarios and achieves the single highest V-measure
+across all 9 runs (stare_high: 0.933).
+
+**Why it works:** The 1D convolutions extract PRI transition patterns directly from the
+Time of Arrival sequence — information that no static per-pulse feature space (5D PDW, 13D
+features, FFT, CDIF) can capture. This addresses the fundamental limitation of density-based
+clustering on frame-level features.
+
+### Honorable Mention: Run H — CDIF/PDIF Histogram Features (+20% on stare_low)
+
+CDIF correctly identifies dominant PRIs per window (avg 4.5–5.0). When concatenated as
+per-pulse PRI-match features with 5D PDW and passed to HDBSCAN, it beats Run B on the
+sparse stare scenario. However, noise increases to 15–26% and dense scenarios (15-30
+emitters) overwhelm the CDIF's 5-level histogram.
+
+### Failed: Run G — Hybrid Graph+Louvain+HMM (V-measure 0.06–0.15)
+
+The k-NN graph in PDW+PRI space does not partition into emitter communities — Louvain
+detects ~9 clusters regardless of true emitter count. HMM merging with heuristic PRI
+comparison was too aggressive. Not viable for production.
+
+### Production Recommendation
+
+**Two-stage hybrid pipeline:** Run B (HDBSCAN on 5D PDW) as primary classifier for speed,
+with windows flagged as high-noise (>10% noise) routed to the 1D-CNN embedding model for
+re-clustering. This gives Run B's speed on easy windows + CNN's precision on hard windows,
+all within CPU-only constraints.
+
+Full report: `results_experiment5/experiment5_final_verdict.md`
 
 ## Scalability Analysis: Full 70 GB TSRD Dataset
 

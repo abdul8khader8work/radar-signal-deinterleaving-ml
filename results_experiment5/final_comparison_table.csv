@@ -1,0 +1,16 @@
+scenario,run,v_measure,ari,noise_ratio,n_clusters,silhouette,time_s,beat_run_b
+stare_low,G GraphHMM,0.1483,0.1052,0.0,9.28,-0.5154,10.7,NO
+stare_low,H CDIF,0.5992,0.5365,0.2585,2.59,0.0853,13.42,YES
+stare_low,I CNN,0.786,0.7907,0.0979,2.74,0.5631,5.57,YES
+stare_high,G GraphHMM,0.0797,0.0292,0.0,9.48,-0.4734,10.74,NO
+stare_high,H CDIF,0.7541,0.7287,0.2482,4.32,0.2433,14.05,NO
+stare_high,I CNN,0.9326,0.9623,0.0529,6.06,0.4268,4.3,YES
+scan_low,G GraphHMM,0.1264,0.116,0.0,8.56,-0.5798,10.63,NO
+scan_low,H CDIF,0.6173,0.5784,0.2639,2.83,0.2028,14.05,NO
+scan_low,I CNN,0.5828,0.5309,0.0537,4.51,0.5021,4.4,NO
+scan_high,G GraphHMM,0.0584,0.0151,0.0,10.79,-0.713,10.58,NO
+scan_high,H CDIF,0.8126,0.7518,0.1552,7.49,0.4821,14.45,NO
+scan_high,I CNN,0.8615,0.8023,0.0684,9.49,0.5318,4.25,NO
+mixed,G GraphHMM,0.1205,0.0814,0.0,9.67,-0.6249,10.78,NO
+mixed,H CDIF,0.8023,0.7623,0.1017,4.58,0.4321,13.87,NO
+mixed,I CNN,0.852,0.828,0.0372,5.61,0.5872,4.43,YES
