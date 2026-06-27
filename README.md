@@ -30,6 +30,7 @@ python run_all.py
 | 11 | `08_final_comparison.py` | Generate 4-way comparison table | 10 sec |
 | 12 | `09_deep_error_analysis.py` | **Exp 4:** Deep failure mode analysis of Run B | 2-3 min |
 | 13 | `09_advanced_architectures.py` | **Exp 5:** Graph+HMM, CDIF, 1D-CNN embedding vs Run B | 2-3 min |
+| 14 | `10_final_breakthrough.py` | **Exp 6:** Multi-scale PRI, Ensemble, CDIF standalone, Bi-GRU | 8-15 min |
 
 ## The 5 Scenarios
 
@@ -78,6 +79,10 @@ Total: 12 combinations per scenario.
 | `results_experiment5/Run_G_GraphHMM/aggregate_metrics.csv` | Exp 5 — Graph+HMM per-scenario metrics |
 | `results_experiment5/Run_H_CDIF/aggregate_metrics.csv` | Exp 5 — CDIF+HDBSCAN per-scenario metrics |
 | `results_experiment5/Run_I_CNN/aggregate_metrics.csv` | Exp 5 — 1D-CNN+HDBSCAN per-scenario metrics |
+| `results_experiment6/final_comparison_table.md` | Exp 6 — Final comparison table (Runs J/K/L/M vs B) |
+| `results_experiment6/winner_analysis.md` | Exp 6 — Winner analysis, 5 DRDO questions answered |
+| `results_experiment6/production_recommendation.md` | Exp 6 — Production deployment guide + executive summary |
+| `results_experiment6/experiment6_metrics.csv` | Exp 6 — Per-scenario metrics for Runs J/K/L/M |
 | `plots/*.png` | 7 visualization files |
 
 ## Experiment 2: Dimensionality Reduction & Algorithm Comparison
@@ -238,6 +243,61 @@ re-clustering. This gives Run B's speed on easy windows + CNN's precision on har
 all within CPU-only constraints.
 
 Full report: `results_experiment5/experiment5_final_verdict.md`
+
+## Experiment 6: Four Final Approaches (Runs J, K, L, M)
+
+Four additional CPU-efficient approaches tested against Run B. Only Ensemble Voting (Run K)
+showed meaningful results; the others failed to surpass the baseline.
+
+### Final Results
+
+| Run | Approach | stare_low | stare_high | scan_low | scan_high | mixed | AVG | Noise | Time/Sc |
+|-----|----------|:--------:|:---------:|:-------:|:---------:|:-----:|:---:|:-----:|:------:|
+| **Run B** | 5D HDBSCAN (baseline) | 0.499 | 0.902 | 0.648 | 0.871 | 0.810 | 0.746 | 7.3% | 10s |
+| **Run K** | Ensemble Voting (4 algos) | **0.771** | 0.890 | 0.629 | 0.838 | **0.819** | **0.789** | 0.7% | 59s |
+| Run_J | Multi-scale PRI Histogram | 0.044 | 0.085 | 0.056 | 0.098 | 0.076 | 0.072 | 58.4% | 5s |
+| Run_L | CDIF Standalone Peaks | 0.076 | 0.256 | 0.072 | 0.112 | 0.091 | 0.121 | 6.8% | 10s |
+| Run_M | Bi-GRU Post-Processor | 0.000 | 0.004 | 0.004 | 0.011 | 0.048 | 0.014 | 7.3% | 81s |
+| **Run I** | 1D-CNN Embedding (Exp 5) | **0.786** | **0.933** | 0.583 | 0.862 | **0.852** | **0.803** | 6.2% | 5s |
+
+### Run-By-Run Analysis
+
+**Run J — Multi-scale PRI Histogram (FAILED, V=0.07 avg)**
+The multi-scale peak detection identifies too many spurious peaks from interleaved pulse
+combinations. The tolerance-based pulse assignment (15% of interval) is too coarse for dense
+scenarios. Average 58% noise rate means most pulses are unlabeled.
+
+**Run K — Ensemble Voting (BEATS Run B on stare_low, V=0.771 vs 0.499)**
+Majority voting across HDBSCAN + GMM + KMeans + Spectral clustering achieves near-zero
+noise (0.1-1.9%) across all scenarios. Beats Run B on stare_low (the hardest scenario for
+Run B) and nearly matches on stare_high (0.890 vs 0.902) and mixed (0.819 vs 0.810).
+However, it loses on scan_low and scan_high where individual algorithms all perform poorly
+and voting can't rescue them. The 59s/scenario cost is higher than Run B's 10s.
+
+**Run L — CDIF Standalone Peaks (FAILED, V=0.12 avg)**
+Using CDIF-extracted PRI peaks as the only feature source (no PDW context) is insufficient.
+The per-pulse PRI-match features lose all information about Frequency, PW, AoA, and Amplitude —
+the primary discriminants when multiple emitters share the same PRI. CDIF works as an
+augmentation (Run H: +20% on stare_low) but not as a standalone feature.
+
+**Run M — Bi-GRU Post-Processor (FAILED, V=0.01 avg)**
+The GRU successfully learns per-cluster PRI rhythms (validated: low training error) but the
+post-processing logic (flagging deviant pulses as noise, merging clusters with similar PRI
+means) destroys the original Run B labels. The merge threshold (1.5× max std) is too
+aggressive, collapsing all clusters into 1. Future work: use GRU prediction error as a
+soft reweighting signal rather than a hard threshold for noise reassignment.
+
+### Overall Ranking (Excluding Run B)
+
+| Rank | Approach | Avg V | Time | Real-time? |
+|:----:|----------|:-----:|:----:|:----------:|
+| 1 | **Run I (1D-CNN)** | **0.803** | 5s | ✅ YES |
+| 2 | Run K (Ensemble) | 0.789 | 59s | ⚠️ Batch |
+| 3 | Run L (CDIF) | 0.121 | 10s | ✅ YES |
+| 4 | Run J (Multi-scale PRI) | 0.072 | 5s | ✅ YES |
+| 5 | Run M (Bi-GRU) | 0.014 | 81s | ❌ NO |
+
+Full reports: `results_experiment6/winner_analysis.md`, `results_experiment6/production_recommendation.md`
 
 ## Scalability Analysis: Full 70 GB TSRD Dataset
 
